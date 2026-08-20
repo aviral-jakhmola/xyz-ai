@@ -65,44 +65,7 @@ export default function App() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
 
-  // Send Message to /chat
-  const handleSend = async (e) => {
-    e?.preventDefault();
-    if (!input.trim() || loading || !token) return;
-
-    const userMessage = input.trim();
-    setInput('');
-    setMessages((prev) => [...prev, { role: 'user', content: userMessage, time: Date.now() }]);
-    setLoading(true);
-
-    try {
-      const res = await fetch('/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ message: userMessage, language }),
-      });
-            const data = await res.json();
-      const replyText = data.reply || data.detail || 'No response received.';
-      setMessages((prev) => [
-        ...prev,
-        { role: 'assistant', content: replyText, time: Date.now() },
-      ]);
-      speak(replyText);
-    } catch (err) {
-      console.error('Chat request failed', err);
-      setMessages((prev) => [
-        ...prev,
-        { role: 'assistant', content: '⚠️ Error communicating with the AI service.', time: Date.now(), failed: true, retryText: userMessage },
-      ]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-    // Speech-to-text: mic button fills the input
+  // Speech-to-text: mic button fills the input
   const handleMicClick = () => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) {
@@ -142,6 +105,43 @@ export default function App() {
     window.speechSynthesis.speak(utterance);
   };
 
+  // Send Message to /chat
+  const handleSend = async (e) => {
+    e?.preventDefault();
+    if (!input.trim() || loading || !token) return;
+
+    const userMessage = input.trim();
+    setInput('');
+    setMessages((prev) => [...prev, { role: 'user', content: userMessage, time: Date.now() }]);
+    setLoading(true);
+
+    try {
+      const res = await fetch('/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ message: userMessage, language }),
+      });
+      const data = await res.json();
+      const replyText = data.reply || data.detail || 'No response received.';
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', content: replyText, time: Date.now() },
+      ]);
+      speak(replyText);
+    } catch (err) {
+      console.error('Chat request failed', err);
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', content: '⚠️ Error communicating with the AI service.', time: Date.now(), failed: true, retryText: userMessage },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Retry a failed message
   const handleRetry = (text) => {
     if (!text) return;
@@ -168,7 +168,7 @@ export default function App() {
       {/* Left Sidebar: Role Switcher & RBAC Inspector */}
       <aside className="w-80 border-r border-slate-800 bg-slate-950 p-5 flex flex-col justify-between">
         <div>
-          <div className="flex items-center gap-2 mb-6">
+          <div className="flex items-center gap-2 mb-8 pb-4 border-b border-slate-800/60">
             <ShieldCheck className="text-emerald-400 w-6 h-6" />
             <h1 className="text-lg font-bold tracking-wide">XYZ AI Assistant</h1>
           </div>
@@ -188,7 +188,7 @@ export default function App() {
       {/* Main Chat Interface */}
       <main className="flex-1 flex flex-col bg-slate-900">
         {/* Top Navbar */}
-                <header className="h-16 border-b border-slate-800 flex items-center justify-between px-6 bg-slate-950/50">
+        <header className="h-16 border-b border-slate-800 flex items-center justify-between px-6 bg-slate-950/50">
           <div className="flex items-center gap-3">
             <Avatar
               state={speaking ? 'speaking' : listening ? 'listening' : loading ? 'thinking' : 'idle'}
@@ -203,7 +203,7 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-3">
-                        <select
+            <select
               value={language}
               onChange={(e) => setLanguage(e.target.value)}
               className="bg-slate-800 border border-slate-700 text-xs rounded-lg px-2.5 py-1.5 text-slate-200 outline-none"
@@ -222,7 +222,7 @@ export default function App() {
             </select>
             <button
               onClick={handleReset}
-              className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs px-3 py-1.5 rounded-lg border border-slate-700 transition-colors"
+              className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs px-3 py-1.5 rounded-lg border border-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               Reset Chat
@@ -232,9 +232,15 @@ export default function App() {
 
         {/* Message Area */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          {messages.length === 0 && !loading && (
+            <div className="h-full flex flex-col items-center justify-center text-center gap-3 text-slate-500">
+              <Avatar state="idle" size="lg" />
+              <p className="text-sm">Ask about attendance, grades, or anything school-related.</p>
+            </div>
+          )}
           {messages.map((m, idx) => (
-            <div key={idx} className={`flex gap-3 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                            {m.role === 'assistant' && <Avatar state={speaking ? 'speaking' : 'idle'} size="sm" />}
+            <div key={idx} className={`flex gap-3 animate-[fadeIn_0.2s_ease-out] ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              {m.role === 'assistant' && <Avatar state={speaking ? 'speaking' : 'idle'} size="sm" />}
               <div
                 className={`max-w-2xl rounded-2xl px-4 py-3 text-sm leading-relaxed ${
                   m.role === 'user'
@@ -267,7 +273,7 @@ export default function App() {
             </div>
           ))}
 
-                    {loading && (
+          {loading && (
             <div className="flex gap-3 items-center text-slate-400 text-xs">
               <Avatar state="thinking" size="sm" />
               <span>Processing with Gemini function-calling...</span>

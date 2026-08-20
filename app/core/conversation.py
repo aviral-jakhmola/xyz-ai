@@ -19,11 +19,10 @@ _SESSIONS: dict = {}
 
 
 def get_or_create_session(current_user: dict, language: str = "English"):
-    key = current_user["id"]
+    key = f"{current_user['id']}:{language}"
     if key not in _SESSIONS:
         _SESSIONS[key] = create_chat_session(current_user, language)
     return _SESSIONS[key]
-
 
 def reset_session(current_user: dict):
     _SESSIONS.pop(current_user["id"], None)
